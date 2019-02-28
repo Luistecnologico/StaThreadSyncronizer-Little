@@ -4,12 +4,10 @@ namespace StaThreadSyncronizer
 {
     internal class StaThread
     {
-        private Thread mStaThread;
-        private IQueueReader<SendOrPostCallbackItem> mQueueConsumer;
-        /// <summary>
-        /// Thread where the code is running
-        /// </summary>
-        internal int ManagedThreadId { get; private set; }
+        private Thread mSTAThread;
+        private IFilumReader<SendOrPostCallbackItem> mFilumPunter;
+        // Thread where the code is running
+        private int ManagedThreadId { get; set; }
         private ManualResetEvent mStopEvent = new ManualResetEvent(false);
 
         /// <summary>
@@ -17,17 +15,19 @@ namespace StaThreadSyncronizer
         /// The thread is being setup as an STA thread.
         /// </summary>
         /// <param name="reader"></param>
-        internal StaThread(IQueueReader<SendOrPostCallbackItem> reader)
+        internal StaThread(IFilumReader<SendOrPostCallbackItem> reader)
         {
-            mQueueConsumer = reader;
-            mStaThread = new Thread(Run);
-            mStaThread.Name = "STA Worker Thread";
-            mStaThread.SetApartmentState(ApartmentState.STA);
+            mFilumPunter = reader;
+            mSTAThread = new Thread(Run)
+            {
+                Name = "STA Runner Thread"
+            };
+            mSTAThread.SetApartmentState(ApartmentState.STA);
         }
 
         internal void Start()
         {
-            mStaThread.Start();
+            mSTAThread.Start();
         }
 
         /// <summary>
@@ -44,21 +44,20 @@ namespace StaThreadSyncronizer
                     break;
                 }
 
-                SendOrPostCallbackItem workItem = mQueueConsumer.Dequeue();
+                SendOrPostCallbackItem workItem = mFilumPunter.Peek();
                 if (workItem != null)
                 {
                     workItem.Execute();
-                }
-                    
+                }   
             }
         }
 
         internal void Stop()
         {
             mStopEvent.Set();
-            mQueueConsumer.ReleaseReader();
-            mStaThread.Join();
-            mQueueConsumer.Dispose();
+            mFilumPunter.ReleaseReader();
+            mSTAThread.Join();
+            mFilumPunter.Dispose();
         }
     }
 }

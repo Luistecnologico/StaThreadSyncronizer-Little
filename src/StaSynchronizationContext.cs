@@ -5,51 +5,54 @@ using System.Threading;
 namespace StaThreadSyncronizer
 {
     /// <summary>
-    /// It is responsible to marshal code into an STA thread, allowing the caller to execute COM APIs that must be on an STA thread.
+    /// It is responsible to command code into an STA thread.
     /// </summary>
     [SecurityPermission(SecurityAction.Demand, ControlThread = true)]
-    public class StaSynchronizationContext : SynchronizationContext, IDisposable
+    public class STASynchronizationContext : SynchronizationContext, IDisposable
     {
-        private BlockingQueue<SendOrPostCallbackItem> mQueue;
-        private StaThread mStaThread;
+        private BlockingFilum<SendOrPostCallbackItem> mFilum;
+        private StaThread mSTAThread;
 
-        public StaSynchronizationContext()
+        public STASynchronizationContext()
            : base()
         {
-            mQueue = new BlockingQueue<SendOrPostCallbackItem>();
-            mStaThread = new StaThread(mQueue);
-            mStaThread.Start();
+            mFilum = new BlockingFilum<SendOrPostCallbackItem>();
+            mSTAThread = new StaThread(mFilum);
+            mSTAThread.Start();
         }
 
         /// <summary>
-        /// A lambda Action and the maximum waiting time in the queue are passed to it by parameter.
+        /// A lambda Action and the maximum waiting time in the filum are passed to it by parameter.
         /// </summary>
         /// <param name="action">Action passed as a lambda expression</param>
-        /// <param name="milisecondsTimeout">Blocks the current thread until the current WaitHandle receives a signal, using a 32-bit signed integer to specify the time interval in milliseconds.</param>
-        public void Send(Action action, int milisecondsTimeout = -1)
+        /// <param name="milisecondsTimeOut">Blocks the current thread until the current WaitHandle (mPeekCompleteWaitHandle) receives a signal, 
+        /// using a 32-bit signed integer to specify the time interval in milliseconds.
+        /// </param>
+        public void Send(Action action, int milisecondsTimeOut = -1)
         {
             // Dispatches an asynchronous message to context
             SendOrPostCallback d = new SendOrPostCallback(_ => action());
 
-            // create an item for execution
+            // create an item
             SendOrPostCallbackItem item = new SendOrPostCallbackItem(d);
-            // queue the item
-            mQueue.Enqueue(item);
-            // wait for the item execution to end
-            if (item.DequeueCompleteWaitHandle.WaitOne(milisecondsTimeout))
-                item.ExecutionCompleteWaitHandle.WaitOne();
-            else
-                mQueue.Dequeue(item);
 
-            // if there was an exception, throw it on the caller thread, not the
-            // sta thread.
-            if (item.ExecutedWithException)
+            // Add item to the filum
+            mFilum.AddItem(item);
+
+            // Wait for the item add to peek
+            if (item.mPeekCompleteWaitHandle.WaitOne(milisecondsTimeOut))
+                item.mExecutionCompleteWaitHandle.WaitOne(); // <-- Wait for the item execution to end
+            else
+                mFilum.RemoveItem(item); // <-- Waiting Time is out
+
+            // throw the exception on the caller thread, not the STA thread.
+            if (item.mExecutedWithException)
                 throw item.mException;
         }
 
         public void Dispose()
         {
-            mStaThread.Stop();
+            mSTAThread.Stop();
         }
     }
 }
