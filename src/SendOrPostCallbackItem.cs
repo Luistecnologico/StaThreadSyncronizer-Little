@@ -8,10 +8,14 @@ namespace StaThreadSyncronizer
     /// </summary>
     internal class SendOrPostCallbackItem
     {
-        internal readonly SendOrPostCallback mMethod;
-        internal ManualResetEvent mAsyncWaitHandle = new ManualResetEvent(false);
-        internal ManualResetEvent mAsyncQueueWaitHandle = new ManualResetEvent(false);
+        private readonly SendOrPostCallback mMethod;
+        internal ManualResetEvent mExecutionCompleteWaitHandle = new ManualResetEvent(false);
+        internal ManualResetEvent mPeekCompleteWaitHandle = new ManualResetEvent(false);
         internal Exception mException { get; private set; } = null;
+        /// <summary>
+        /// Return if there was any Exception inside the code
+        /// </summary>
+        internal bool mExecutedWithException => mException != null;
 
         /// <summary>
         /// Delegate we wish to execute
@@ -24,28 +28,16 @@ namespace StaThreadSyncronizer
             mMethod = callback;
         }
 
-        internal bool ExecutedWithException
-        {
-            get { return mException != null; }
-        }
-
         /// <summary>
-        /// this code must run ont the STA thread
+        /// This code must run ont the STA thread.
+        /// Calling thread will block until mAsyncWaitHanel is set
         /// </summary>
         internal void Execute()
         {
-            Send();
-        }
-
-        /// <summary>
-        /// calling thread will block until mAsyncWaitHanel is set
-        /// </summary>
-        internal void Send()
-        {
             try
             {
-                //Set Queue Hadnler ON
-                mAsyncQueueWaitHandle.Set();
+                //Set Filum Hadnler ON
+                mPeekCompleteWaitHandle.Set();
                 //call the thread
                 mMethod(null);
             }
@@ -55,18 +47,8 @@ namespace StaThreadSyncronizer
             }
             finally
             {
-                mAsyncWaitHandle.Set();
+                mExecutionCompleteWaitHandle.Set();
             }
-        }
-
-        internal WaitHandle ExecutionCompleteWaitHandle
-        {
-            get { return mAsyncWaitHandle; }
-        }
-
-        internal WaitHandle DequeueCompleteWaitHandle
-        {
-            get { return mAsyncQueueWaitHandle; }
         }
     }
 }
