@@ -6,8 +6,6 @@ namespace StaThreadSyncronizer
     {
         private Thread mSTAThread;
         private IFilumReader<SendOrPostCallbackItem> mFilumPunter;
-        // Thread where the code is running
-        private int ManagedThreadId { get; set; }
         private ManualResetEvent mStopEvent = new ManualResetEvent(false);
 
         /// <summary>
@@ -35,7 +33,6 @@ namespace StaThreadSyncronizer
         /// </summary>
         private void Run()
         {
-            ManagedThreadId = Thread.CurrentThread.ManagedThreadId;
             while (true)
             {
                 bool stop = mStopEvent.WaitOne(0);
