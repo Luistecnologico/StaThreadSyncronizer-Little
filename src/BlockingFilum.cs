@@ -16,26 +16,26 @@ namespace StaThreadSyncronizer
     }
 
     /// <summary>
-    /// Queue to queue up work items from thread X to my STA thread
-    /// and dequeue items only when there are items in the queue.
+    /// XスレッドからSTAスレッドへ操作項目を移動するリスト
+    /// 操作項目がリストへ移動されてはじめて、リストから取り出す
     /// </summary>
     /// <typeparam name="T"></typeparam>
     internal class BlockingFilum<T> : IFilumReader<T>, IFilumWriter<T>, IDisposable
     {
         private List<T> mFilum = new List<T>();
-        // Create a semaphore that counts the items in the Filum as resources.
-        // Initialize the semaphore (default value 0)
+        // リストに置いてある操作項目を数えるセマフォを作成する
+        // セマフォのイニシャライズ (デフォルトバリューは０)
         private Semaphore mSemaphore = new Semaphore(0, int.MaxValue);
-        // A event that gets triggered when the reader thread is exiting
+        // リーダースレッドを終了している間にトリガーを起動するイベント
         private ManualResetEvent mThreadKiller = new ManualResetEvent(false);
 
         /// <summary>
-        /// Wait handles that are used to unblock a Peek or Remove operations.
+        /// ピーク操作または削除操作のブロックを解除する期待ハンドル
         /// </summary>
         private readonly WaitHandle[] mWaitHandles;
 
         /// <summary>
-        /// Blocking Filum Constructor
+        /// Blocking Filumコンストラクター
         /// </summary>
         internal BlockingFilum()
         {
@@ -43,9 +43,9 @@ namespace StaThreadSyncronizer
         }
 
         /// <summary>
-        /// Because it's just puted an item into the filum, add and available resource to the semaphore
+        /// リストに操作項目を一つしか入れ込みませんので、セマフォも一つずつ増える
         /// </summary>
-        /// <param name="data">Item that will be stored into the Filum</param>
+        /// <param name="data">リストに入れ込む操作項目</param>
         public void AddItem(T data)
         {
             lock (mFilum) mFilum.Add(data);
@@ -53,12 +53,12 @@ namespace StaThreadSyncronizer
         }
 
         /// <summary>
-        /// Wait until something pops into the filum and return the Next Item to launch.
+        /// 何かの操作項目がリストに表示するまで期待して、その操作項目を起動する
         /// <remark>
-        /// Wait until there is an item in the filum.
+        /// リストに操作項目を入れ込むまで期待する
         /// </remark>
         /// </summary>
-        /// <returns>return Next SendOrPostCallbackItem</returns>
+        /// <returns>起動させるSendOrPostCallbackItemを返す</returns>
         public T Peek()
         {
             WaitHandle.WaitAny(mWaitHandles);
@@ -75,9 +75,9 @@ namespace StaThreadSyncronizer
         }
 
         /// <summary>
-        /// Remove from the Filum a specific item
+        /// リストから特定の操作項目を削除する
         /// </summary>
-        /// <param name="item">Item that will be removed</param>
+        /// <param name="item">削除される操作項目/param>
         public void RemoveItem(T item)
         {
             WaitHandle.WaitAny(mWaitHandles);
@@ -91,7 +91,7 @@ namespace StaThreadSyncronizer
         }
 
         /// <summary>
-        /// Stop the Reader (and, so, its threaders) when context class is disposed.
+        /// クラスコンテストが処分されたはじめて、リーダーを停止する
         /// </summary>
         public void ReleaseReader()
         {
@@ -99,7 +99,7 @@ namespace StaThreadSyncronizer
         }
 
         /// <summary>
-        /// When this class is disposed, close Semaphore (to not accept new requests) and clear the Filum.
+        /// クラスを処分すると、セマフォをブロックしてリストを初期化する
         /// </summary>
         void IDisposable.Dispose()
         {

@@ -5,7 +5,7 @@ using System.Threading;
 namespace StaThreadSyncronizer
 {
     /// <summary>
-    /// It is responsible to command code into an STA thread.
+    /// XスレッドからSTAスレッドへ操作項目を移動する
     /// </summary>
     [SecurityPermission(SecurityAction.Demand, ControlThread = true)]
     public class STASynchronizationContext : SynchronizationContext, IDisposable
@@ -22,30 +22,31 @@ namespace StaThreadSyncronizer
         }
 
         /// <summary>
-        /// A lambda Action and the maximum waiting time in the filum are passed to it by parameter.
+        /// ラムダ式と最大期待期間をパラメーターとして渡される
         /// </summary>
-        /// <param name="action">Action passed as a lambda expression</param>
-        /// <param name="milisecondsTimeOut">Blocks the current thread until the current WaitHandle (mPeekCompleteWaitHandle) receives a signal, 
-        /// using a 32-bit signed integer to specify the time interval in milliseconds.
+        /// <param name="action">ラムダ式として渡される</param>
+        /// <param name="milisecondsTimeOut">
+        /// waitHandle (mPeekCompleteWaitHandle)がシグナルを受け取るまで現在スレッドをブロックする。
+        /// ミリで最大期待期間を設定するように３２ビットの整数値を使用する
         /// </param>
         public void Send(Action action, int milisecondsTimeOut = -1)
         {
-            // Dispatches an asynchronous message to context
+            // コンテストに非同期処理を移動する
             SendOrPostCallback d = new SendOrPostCallback(_ => action());
 
-            // create an item
+            // 項目を作成する
             SendOrPostCallbackItem item = new SendOrPostCallbackItem(d);
 
-            // Add item to the filum
+            // リストに項目を入れ込む
             mFilum.AddItem(item);
 
-            // Wait for the item add to peek
+            // 項目が入れ込まれるから取り出されるまで期待する
             if (item.mPeekCompleteWaitHandle.WaitOne(milisecondsTimeOut))
-                item.mExecutionCompleteWaitHandle.WaitOne(); // <-- Wait for the item execution to end
+                item.mExecutionCompleteWaitHandle.WaitOne(); // <-- 操作項目実行時を期待する
             else
-                mFilum.RemoveItem(item); // <-- Waiting Time is out
+                mFilum.RemoveItem(item); // <-- 最大期待期間超える場合
 
-            // throw the exception on the caller thread, not the STA thread.
+            // 元スレッドで例外処理を実行する, STAスレッドで実行しない.
             if (item.mExecutedWithException)
                 throw item.mException;
         }

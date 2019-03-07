@@ -4,7 +4,7 @@ using System.Threading;
 namespace StaThreadSyncronizer
 {
     /// <summary>
-    /// Contains the delegate we wish to execute on the STA thread
+    /// STAスレッドで実行するるデリゲートを含む
     /// </summary>
     internal class SendOrPostCallbackItem
     {
@@ -13,32 +13,30 @@ namespace StaThreadSyncronizer
         internal ManualResetEvent mPeekCompleteWaitHandle = new ManualResetEvent(false);
         internal Exception mException { get; private set; } = null;
         /// <summary>
-        /// Return if there was any Exception inside the code
+        /// コードで発生されたエラーを返す
         /// </summary>
         internal bool mExecutedWithException => mException != null;
 
         /// <summary>
-        /// Delegate we wish to execute
+        /// 実行したいデリゲート
         /// </summary>
-        /// <param name="callback">To do method</param>
-        /// <param name="state">Parameters of the over method</param>
-        /// <param name="type">Delegate running mode: Send or Post</param>
+        /// <param name="callback">実行する処理</param>
         internal SendOrPostCallbackItem(SendOrPostCallback callback)
         {
             mMethod = callback;
         }
 
         /// <summary>
-        /// This code must run ont the STA thread.
-        /// Calling thread will block until mAsyncWaitHanel is set
+        /// TSTAスレッドで起動されるコード
+        /// mAsyncWaitHanelが呼び出されるまでピック操作がブロックしている
         /// </summary>
         internal void Execute()
         {
             try
             {
-                //Set Filum Hadnler ON
+                //リストハンドルをオンにする
                 mPeekCompleteWaitHandle.Set();
-                //call the thread
+                //スレッドを起動する
                 mMethod(null);
             }
             catch (Exception e)

@@ -9,10 +9,10 @@ namespace StaThreadSyncronizer
         private ManualResetEvent mStopEvent = new ManualResetEvent(false);
 
         /// <summary>
-        /// This class takes an interface of type IQueueReader, this is really our blocking queue.
-        /// The thread is being setup as an STA thread.
+        /// IQueueReader型インタフェースを使用する。これは、実際のリストのブロック
+        /// スレッドはSTAスレッドとして設定している
         /// </summary>
-        /// <param name="reader"></param>
+        /// <param name="reader">リストの項目を読み込めるリーダー</param>
         internal StaThread(IFilumReader<SendOrPostCallbackItem> reader)
         {
             mFilumPunter = reader;
@@ -29,7 +29,7 @@ namespace StaThreadSyncronizer
         }
 
         /// <summary>
-        /// Executing any work items on the Run method means executing them on the STA thread.
+        /// Runメソッドでワーク項目を実行するとは、STAスレッドで実行するという意味
         /// </summary>
         private void Run()
         {
