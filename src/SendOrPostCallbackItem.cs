@@ -6,16 +6,16 @@ namespace StaThreadSyncronizer
     /// <summary>
     /// STAスレッドで実行するるデリゲートを含む
     /// </summary>
-    internal class SendOrPostCallbackItem
+    internal class SendOrPostCallbackItem : IDisposable
     {
         private readonly SendOrPostCallback mMethod;
         internal ManualResetEvent mExecutionCompleteWaitHandle = new ManualResetEvent(false);
         internal ManualResetEvent mPeekCompleteWaitHandle = new ManualResetEvent(false);
-        internal Exception mException { get; private set; } = null;
+        internal Exception MException { get; private set; } = null;
         /// <summary>
         /// コードで発生されたエラーを返す
         /// </summary>
-        internal bool mExecutedWithException => mException != null;
+        internal bool MExecutedWithException => MException != null;
 
         /// <summary>
         /// 実行したいデリゲート
@@ -27,26 +27,36 @@ namespace StaThreadSyncronizer
         }
 
         /// <summary>
-        /// TSTAスレッドで起動されるコード
+        /// STAスレッドで起動されるコード
         /// mAsyncWaitHanelが呼び出されるまでピック操作がブロックしている
         /// </summary>
         internal void Execute()
         {
             try
             {
-                //リストハンドルをオンにする
+                // リストハンドルをオンにする
                 mPeekCompleteWaitHandle.Set();
-                //スレッドを起動する
+                // スレッドを起動する
                 mMethod(null);
             }
             catch (Exception e)
             {
-                mException = e;
+                MException = e;
             }
             finally
             {
                 mExecutionCompleteWaitHandle.Set();
             }
+        }
+
+        /// <summary>
+        /// ManualResetEventと自身を解放
+        /// </summary>
+        public void Dispose()
+        {
+            mExecutionCompleteWaitHandle.Close();
+            mPeekCompleteWaitHandle.Close();
+            GC.SuppressFinalize(this);
         }
     }
 }

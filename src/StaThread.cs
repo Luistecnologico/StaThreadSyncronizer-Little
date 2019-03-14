@@ -1,8 +1,9 @@
 ﻿using System.Threading;
+using System;
 
 namespace StaThreadSyncronizer
 {
-    internal class StaThread
+    internal class StaThread : IDisposable
     {
         private Thread mSTAThread;
         private IFilumReader<SendOrPostCallbackItem> mFilumPunter;
@@ -55,6 +56,12 @@ namespace StaThreadSyncronizer
             mFilumPunter.ReleaseReader();
             mSTAThread.Join();
             mFilumPunter.Dispose();
+        }
+
+        public void Dispose()
+        {
+            mStopEvent.Close();
+            GC.SuppressFinalize(this);
         }
     }
 }

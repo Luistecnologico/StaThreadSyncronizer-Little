@@ -8,6 +8,7 @@ namespace StaThreadSyncronizer
     {
         T Peek();
         void ReleaseReader();
+        void RemoveItem(T item);
     }
 
     internal interface IFilumWriter<T> : IDisposable
@@ -25,12 +26,12 @@ namespace StaThreadSyncronizer
         private List<T> mFilum = new List<T>();
         // リストに置いてある操作項目を数えるセマフォを作成する
         // セマフォのイニシャライズ (デフォルトバリューは０)
-        private Semaphore mSemaphore = new Semaphore(0, int.MaxValue);
+        private Semaphore mSemaphore = new Semaphore(0, 5);
         // リーダースレッドを終了している間にトリガーを起動するイベント
         private ManualResetEvent mThreadKiller = new ManualResetEvent(false);
 
         /// <summary>
-        /// ピーク操作または削除操作のブロックを解除する期待ハンドル
+        /// ピーク操作または削除操作のブロックを解除する待機ハンドル
         /// </summary>
         private readonly WaitHandle[] mWaitHandles;
 
@@ -53,9 +54,9 @@ namespace StaThreadSyncronizer
         }
 
         /// <summary>
-        /// 何かの操作項目がリストに表示するまで期待して、その操作項目を起動する
+        /// 何かの操作項目がリストに表示するまで待機して、その操作項目を起動
         /// <remark>
-        /// リストに操作項目を入れ込むまで期待する
+        /// リストに操作項目を入れ込むまで待機
         /// </remark>
         /// </summary>
         /// <returns>起動させるSendOrPostCallbackItemを返す</returns>
@@ -75,9 +76,9 @@ namespace StaThreadSyncronizer
         }
 
         /// <summary>
-        /// リストから特定の操作項目を削除する
+        /// リストから特定の操作項目を削除
         /// </summary>
-        /// <param name="item">削除される操作項目/param>
+        /// <param name="item">削除される操作項目</param>
         public void RemoveItem(T item)
         {
             WaitHandle.WaitAny(mWaitHandles);
@@ -91,7 +92,7 @@ namespace StaThreadSyncronizer
         }
 
         /// <summary>
-        /// クラスコンテストが処分されたはじめて、リーダーを停止する
+        /// クラスコンテストが処分されたはじめて、リーダーを停止
         /// </summary>
         public void ReleaseReader()
         {
@@ -99,9 +100,9 @@ namespace StaThreadSyncronizer
         }
 
         /// <summary>
-        /// クラスを処分すると、セマフォをブロックしてリストを初期化する
+        /// クラスを解放すると、セマフォをブロックしてリストを初期化
         /// </summary>
-        void IDisposable.Dispose()
+        public void Dispose()
         {
             if (mSemaphore != null)
             {

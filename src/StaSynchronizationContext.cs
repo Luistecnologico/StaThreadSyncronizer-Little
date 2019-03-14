@@ -5,7 +5,7 @@ using System.Threading;
 namespace StaThreadSyncronizer
 {
     /// <summary>
-    /// XスレッドからSTAスレッドへ操作項目を移動する
+    /// XスレッドからSTAスレッドへ操作項目を移動
     /// </summary>
     [SecurityPermission(SecurityAction.Demand, ControlThread = true)]
     public class STASynchronizationContext : SynchronizationContext, IDisposable
@@ -22,12 +22,12 @@ namespace StaThreadSyncronizer
         }
 
         /// <summary>
-        /// ラムダ式と最大期待期間をパラメーターとして渡される
+        /// ラムダ式と最大待機期間をパラメーターとして渡される
         /// </summary>
         /// <param name="action">ラムダ式として渡される</param>
         /// <param name="milisecondsTimeOut">
-        /// waitHandle (mPeekCompleteWaitHandle)がシグナルを受け取るまで現在スレッドをブロックする。
-        /// ミリで最大期待期間を設定するように３２ビットの整数値を使用する
+        /// waitHandle (mPeekCompleteWaitHandle)がシグナルを受け取るまで現在スレッドをブロックする 
+        /// ミリで最大待機期間を設定するように３２ビットの整数値を使用
         /// </param>
         public void Send(Action action, int milisecondsTimeOut = -1)
         {
@@ -47,13 +47,40 @@ namespace StaThreadSyncronizer
                 mFilum.RemoveItem(item); // <-- 最大期待期間超える場合
 
             // 元スレッドで例外処理を実行する, STAスレッドで実行しない.
-            if (item.mExecutedWithException)
-                throw item.mException;
+            if (item.MExecutedWithException)
+                throw item.MException;
         }
 
+        /// <summary>
+        /// カラスの破棄可能なフィールドを解放する処理を起動
+        /// 自身を解放
+        /// </summary>
         public void Dispose()
         {
-            mSTAThread.Stop();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// 解放処理を呼び出さない場合は、クラスの破棄可能なフィールドを解放するのは必要ではない
+        /// </summary>
+        ~STASynchronizationContext()
+        {
+            Dispose(false);
+        }
+
+        /// <summary>
+        /// カラスの破棄可能なフィールドを解放する処理
+        /// </summary>
+        /// <param name="disposing">True: フィールドを解放 | False: フィールドを開放しない</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                mSTAThread.Stop();
+                mSTAThread.Dispose();
+                mFilum.Dispose();
+            }
         }
     }
 }
