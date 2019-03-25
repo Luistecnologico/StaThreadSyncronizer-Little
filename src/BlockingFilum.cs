@@ -8,6 +8,7 @@ namespace StaThreadSyncronizer
     {
         T Peek();
         void ReleaseReader();
+        void RemoveItem(T item);
     }
 
     internal interface IFilumWriter<T> : IDisposable
@@ -80,12 +81,14 @@ namespace StaThreadSyncronizer
         /// <param name="item">Item that will be removed</param>
         public void RemoveItem(T item)
         {
-            WaitHandle.WaitAny(mWaitHandles);
             lock (mFilum)
             {
-                if (mFilum.Count > 0)
+                if (0 < mFilum.Count)
                 {
-                    mFilum.Remove(item);
+                    if (mFilum.Remove(item))
+                    {
+                        throw new TimeoutException("TimeOutException");
+                    }
                 }
             }
         }
@@ -101,7 +104,7 @@ namespace StaThreadSyncronizer
         /// <summary>
         /// When this class is disposed, close Semaphore (to not accept new requests) and clear the Filum.
         /// </summary>
-        void IDisposable.Dispose()
+        public void Dispose()
         {
             if (mSemaphore != null)
             {
