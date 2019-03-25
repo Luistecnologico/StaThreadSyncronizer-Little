@@ -8,7 +8,7 @@ namespace StaThreadSyncronizer
     /// It is responsible to command code into an STA thread.
     /// </summary>
     [SecurityPermission(SecurityAction.Demand, ControlThread = true)]
-    public class STASynchronizationContext : SynchronizationContext, IDisposable
+    public class STASynchronizationContext : IDisposable
     {
         private BlockingFilum<SendOrPostCallbackItem> mFilum;
         private StaThread mSTAThread;
@@ -53,6 +53,29 @@ namespace StaThreadSyncronizer
         public void Dispose()
         {
             mSTAThread.Stop();
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Destructor
+        /// </summary>
+        ~STASynchronizationContext()
+        {
+            Dispose(false);
+        }
+
+        /// <summary>
+        /// Dispose to other classes
+        /// </summary>
+        /// <param name="disposing"></param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                mSTAThread.Stop();
+                mSTAThread.Dispose();
+                mFilum.Dispose();
+            }
         }
     }
 }

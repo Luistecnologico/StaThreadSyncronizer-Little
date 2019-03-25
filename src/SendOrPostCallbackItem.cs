@@ -6,7 +6,7 @@ namespace StaThreadSyncronizer
     /// <summary>
     /// Contains the delegate we wish to execute on the STA thread
     /// </summary>
-    internal class SendOrPostCallbackItem
+    internal class SendOrPostCallbackItem : IDisposable
     {
         private readonly SendOrPostCallback mMethod;
         internal ManualResetEvent mExecutionCompleteWaitHandle = new ManualResetEvent(false);
@@ -49,6 +49,13 @@ namespace StaThreadSyncronizer
             {
                 mExecutionCompleteWaitHandle.Set();
             }
+        }
+
+        public void Dispose()
+        {
+            mExecutionCompleteWaitHandle.Close();
+            mPeekCompleteWaitHandle.Close();
+            GC.SuppressFinalize(this);
         }
     }
 }
