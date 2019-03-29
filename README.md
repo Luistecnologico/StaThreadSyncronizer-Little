@@ -18,7 +18,7 @@ I need a list to send work items from thread X to my STA thread. I also have to 
 - The STA thread must be the reading thread, spending time waiting for an item on the list or processing a message from the list. 
 - Notice that when a item is added into the list, it releases the semaphore, indicating that a resource is available; this will cause the Peek method to unblock. 
 
-##SendOrPostCallbackItem class
+## SendOrPostCallbackItem class
 The BlockingFilum class is generic, so you can re-use it in another application. Considering this list is responsible to send code from one thread to another, the ideal item to list is a delegate. In this case the ideal delegate is `SendOrPostCallback` delegate.
 
 - `SendOrPostCallbackItem` contains the delegate we wish to execute on the STA thread.
